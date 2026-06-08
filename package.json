@@ -1,0 +1,29 @@
+{
+  "name": "milan-sharma-portfolio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-spring/web": "^10.0.3",
+    "@supabase/supabase-js": "^2.107.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "cobe": "0.6.3",
+    "jspdf": "^4.2.1",
+    "lucide-react": "0.460.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-router-dom": "^7.1.3",
+    "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.0",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "~5.8.2"
+  }
+}
