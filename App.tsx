@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import SkillCard from './components/SkillCard';
 import ProjectCard from './components/ProjectCard';
@@ -36,6 +37,8 @@ import {
 type TabType = 'about' | 'resume' | 'products' | 'contact' | 'library';
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<TabType>('about');
   const [showFloatingNav, setShowFloatingNav] = useState(false);
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
@@ -59,7 +62,7 @@ const App: React.FC = () => {
   const [hasLiked, setHasLiked] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Load Settings on Mount & Hash Routing
+  // Load Settings on Mount
   useEffect(() => {
     const loadData = async () => {
       const data = await fetchSettings();
@@ -72,27 +75,28 @@ const App: React.FC = () => {
     if (sessionStorage.getItem('admin_logged_in') === 'true') {
       setIsAdminMode(true);
     }
-
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith('#/blog/')) {
-        const slug = hash.replace('#/blog/', '');
-        setSelectedPostSlug(slug);
-        setActiveTab('library');
-      } else if (hash.startsWith('#/')) {
-        const tab = hash.replace('#/', '') as TabType;
-        if (['about', 'resume', 'products', 'contact', 'library'].includes(tab)) {
-          setActiveTab(tab);
-          setSelectedPostSlug(null);
-        }
-      }
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Run on initial load
-
-    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Sync state with location pathname
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/blog/')) {
+      const slug = path.replace('/blog/', '');
+      setSelectedPostSlug(slug);
+      setActiveTab('library');
+    } else if (path === '/' || path === '/about') {
+      setActiveTab('about');
+      setSelectedPostSlug(null);
+    } else if (path === '/admin') {
+      setIsAdminLoginOpen(true);
+    } else {
+      const tab = path.replace('/', '') as TabType;
+      if (['about', 'resume', 'products', 'contact', 'library'].includes(tab)) {
+        setActiveTab(tab);
+        setSelectedPostSlug(null);
+      }
+    }
+  }, [location.pathname]);
 
   // Fetch comments and likes for selected blog
   useEffect(() => {
@@ -118,18 +122,191 @@ const App: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Dynamic SEO & Metadata Updates
+  useEffect(() => {
+    const siteUrl = 'https://milansharma-ai.vercel.app';
+    let title = 'Milan Sharma | AI Product Manager & Founder of Nexa Technologies';
+    let description = 'Milan Sharma | AI Product Manager, SaaS Product Manager, Technical Product Manager, and Founder of Nexa Technologies. Product portfolio, experience, bio, and neural library blogs.';
+    let canonical = `${siteUrl}${location.pathname}`;
+    let ogType = 'website';
+    let ogImage = settings.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800';
+    let schemaData: any = null;
+
+    if (selectedPostSlug) {
+      const post = settings.blogs.find(p => p.slug === selectedPostSlug);
+      if (post) {
+        title = `${post.title} | Milan Sharma`;
+        description = post.description || description;
+        ogType = 'article';
+        ogImage = formatImageUrl(post.image);
+        
+        // BlogPosting Schema
+        schemaData = {
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          "headline": post.title,
+          "description": post.description,
+          "image": formatImageUrl(post.image),
+          "datePublished": new Date(post.date).toISOString().slice(0, 10),
+          "author": {
+            "@type": "Person",
+            "name": post.author?.name || settings.name,
+            "image": post.author?.avatar || settings.avatar
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "Nexa Technologies",
+            "logo": {
+              "@type": "ImageObject",
+              "url": settings.avatar
+            }
+          },
+          "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": canonical
+          }
+        };
+      }
+    } else {
+      // Tab-specific metadata
+      switch (activeTab) {
+        case 'about':
+          title = 'Milan Sharma | AI & SaaS Product Manager';
+          description = `Milan Sharma's official portfolio. AI Product Manager, SaaS Product Manager, Technical Product Manager, and Founder of Nexa Technologies.`;
+          break;
+        case 'resume':
+          title = 'Milan Sharma | Resume & Core Work Experience';
+          description = `Read Milan Sharma's professional resume. Review competencies, tech stack, leading AI initiatives, and product strategy.`;
+          break;
+        case 'products':
+          title = 'Milan Sharma | Products & Enterprise Solutions';
+          description = `Explore SaaS platforms and enterprise tools built by Milan Sharma, including Nexa Billing System.`;
+          break;
+        case 'library':
+          title = 'NeuralPath Library | AI & Agentic Workflow Insights';
+          description = `High-signal insights and technical deep dives into AI engineering, Agentic Workflows, and Data Science.`;
+          break;
+        case 'contact':
+          title = 'Contact Milan Sharma | Get In Touch';
+          description = `Have an AI project in mind or want to collaborate on product strategy? Connect directly with Milan Sharma.`;
+          break;
+      }
+
+      // Person & Website Schemas for Root/About Page
+      if (activeTab === 'about') {
+        schemaData = [
+          {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": settings.name,
+            "jobTitle": settings.role,
+            "url": siteUrl,
+            "sameAs": [
+              `https://github.com/${settings.github}`,
+              `https://linkedin.com/in/${settings.linkedin}`
+            ],
+            "worksFor": {
+              "@type": "Organization",
+              "name": "Nexa Technologies"
+            }
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": `${settings.name} Portfolio`,
+            "url": siteUrl
+          }
+        ];
+      } else {
+        // Breadcrumb Schema for subpages
+        schemaData = {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": siteUrl
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": activeTab.charAt(0).toUpperCase() + activeTab.slice(1),
+              "item": canonical
+            }
+          ]
+        };
+      }
+    }
+
+    // Set Document Title
+    document.title = title;
+
+    // Helper function to update meta tags
+    const updateOrCreateMeta = (propertyAttr: string, attrValue: string, contentValue: string) => {
+      let meta = document.querySelector(`meta[${propertyAttr}="${attrValue}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute(propertyAttr, attrValue);
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', contentValue);
+    };
+
+    // Update standard & SEO meta tags
+    updateOrCreateMeta('name', 'description', description);
+    updateOrCreateMeta('name', 'robots', 'index, follow');
+    updateOrCreateMeta('name', 'keywords', 'Product Manager Portfolio, AI Product Manager, Technical Product Manager, Product Strategy, SaaS Product Manager, AI Product Management');
+
+    // Update Open Graph tags
+    updateOrCreateMeta('property', 'og:title', title);
+    updateOrCreateMeta('property', 'og:description', description);
+    updateOrCreateMeta('property', 'og:type', ogType);
+    updateOrCreateMeta('property', 'og:url', canonical);
+    updateOrCreateMeta('property', 'og:image', ogImage);
+    updateOrCreateMeta('property', 'og:site_name', 'Milan Sharma Portfolio');
+
+    // Update Twitter Card tags
+    updateOrCreateMeta('name', 'twitter:card', 'summary_large_image');
+    updateOrCreateMeta('name', 'twitter:title', title);
+    updateOrCreateMeta('name', 'twitter:description', description);
+    updateOrCreateMeta('name', 'twitter:image', ogImage);
+
+    // Update Canonical link tag
+    let linkCanonical = document.querySelector('link[rel="canonical"]');
+    if (!linkCanonical) {
+      linkCanonical = document.createElement('link');
+      linkCanonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(linkCanonical);
+    }
+    linkCanonical.setAttribute('href', canonical);
+
+    // Update / Inject JSON-LD Script tag
+    let ldScript = document.getElementById('jsonld-seo') as HTMLScriptElement;
+    if (ldScript) {
+      ldScript.textContent = JSON.stringify(schemaData);
+    } else {
+      ldScript = document.createElement('script');
+      ldScript.id = 'jsonld-seo';
+      ldScript.type = 'application/ld+json';
+      ldScript.textContent = JSON.stringify(schemaData);
+      document.head.appendChild(ldScript);
+    }
+  }, [activeTab, selectedPostSlug, settings, location.pathname]);
+
   const techStackIcons = [
     "python", "mysql", "flask", "docker", "pytorch", "tensorflow", 
     "fastapi", "pandas", "numpy", "git", "sqlite", "jupyter", "mongodb", "postgresql", "linux"
   ].map(slug => `https://cdn.simpleicons.org/${slug}`);
 
   const navigateToTab = (tab: TabType) => {
-    window.location.hash = `#/${tab}`;
+    navigate(tab === 'about' ? '/' : `/${tab}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleOpenPost = (slug: string) => {
-    window.location.hash = `#/blog/${slug}`;
+    navigate(`/blog/${slug}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -175,7 +352,7 @@ const App: React.FC = () => {
     const suggested = settings.blogs.filter(p => p.slug !== post.slug).slice(0, 2);
 
     const handleShareBlog = () => {
-      const link = `${window.location.origin}${window.location.pathname}#/blog/${post.slug}`;
+      const link = `${window.location.origin}/blog/${post.slug}`;
       navigator.clipboard.writeText(link);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
@@ -185,7 +362,7 @@ const App: React.FC = () => {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
         <button 
           onClick={() => {
-            window.location.hash = '#/library';
+            navigate('/library');
           }}
           className="flex items-center gap-2 text-gray-500 hover:text-[#f59e0b] transition-colors mb-6 md:mb-10 text-[10px] font-black uppercase tracking-[0.2em]"
         >
@@ -227,7 +404,7 @@ const App: React.FC = () => {
           <div className="prose prose-invert prose-lg max-w-none space-y-6 md:space-y-8 text-gray-300 leading-[1.7] md:leading-[1.8] text-[16px] md:text-[18px]">
              <div 
                dangerouslySetInnerHTML={{ 
-                 __html: parseMarkdown(post.content, post.images)
+                 __html: parseMarkdown(post.content, post.images, post.buttons)
                }} 
              />
           </div>

@@ -363,12 +363,12 @@ export const formatImageUrl = (url: string): string => {
   
   let match = url.match(gdRegex1);
   if (match && match[1]) {
-    return `https://docs.google.com/uc?export=download&id=${match[1]}`;
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
   }
   
   match = url.match(gdRegex2);
   if (match && match[1]) {
-    return `https://docs.google.com/uc?export=download&id=${match[1]}`;
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
   }
   
   return url;
@@ -460,8 +460,12 @@ export const addLike = async (postSlug: string): Promise<boolean> => {
   }
 };
 
-// Custom Markdown Parser supporting tables, images, bold, headers, and {{imageN}} placeholders
-export const parseMarkdown = (markdown: string, images?: Record<string, string>): string => {
+// Custom Markdown Parser supporting tables, images, bold, headers, {{imageN}} and {{buttonN}} placeholders
+export const parseMarkdown = (
+  markdown: string, 
+  images?: Record<string, string>,
+  buttons?: Record<string, { text: string; url: string; icon: string; bgColor?: string; textColor?: string }>
+): string => {
   if (!markdown) return '';
   let html = markdown;
   
@@ -474,6 +478,28 @@ export const parseMarkdown = (markdown: string, images?: Record<string, string>)
         return `![${key}](${processedUrl})`;
       }
       return match; // leave placeholder if no URL mapped
+    });
+  }
+
+  // 0.1 Replace {{buttonN}} placeholders with custom stylized action buttons
+  if (buttons) {
+    html = html.replace(/\{\{(button\d+)\}\}/g, (match, key) => {
+      const btn = buttons[key];
+      if (btn) {
+        const text = btn.text || 'Click Here';
+        const url = btn.url || '#';
+        const icon = btn.icon || 'link';
+        const bgColor = btn.bgColor || '#f59e0b';
+        const textColor = btn.textColor || '#000000';
+        const cleanIcon = icon.trim().toLowerCase().replace(/\s+/g, '');
+        const iconUrl = `https://cdn.simpleicons.org/${cleanIcon}/ffffff`;
+        
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2.5 px-6 py-3.5 my-4 font-black text-xs uppercase tracking-widest rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md mr-3" style="background-color: ${bgColor}; color: ${textColor}; text-decoration: none; display: inline-flex;">
+          <img src="${iconUrl}" alt="" class="w-4 h-4 shrink-0" style="width: 16px; height: 16px; margin: 0; display: inline-block; vertical-align: middle; filter: brightness(0) invert(1);" onError="this.style.display='none'" />
+          <span style="vertical-align: middle; line-height: 1.2;">${text}</span>
+        </a>`;
+      }
+      return match;
     });
   }
   

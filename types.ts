@@ -70,6 +70,7 @@ export interface BlogPost {
   tags: BlogTag[];
   content: string;
   images?: Record<string, string>;
+  buttons?: Record<string, { text: string; url: string; icon: string; bgColor?: string; textColor?: string }>;
   resources?: BlogResource[];
   questions?: BlogQuestion[];
   author: {

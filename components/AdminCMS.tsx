@@ -39,6 +39,7 @@ import {
 import { PortfolioSettings, Lead, Product, Skill, Project, CertificationCategory, LifeStyle } from '../types';
 import { getDbStatus, SQL_SCHEMA, fetchLeads, fetchAnalytics, AnalyticsData, supabase, parseMarkdown, formatImageUrl } from '../db';
 import { BlogPost } from '../types';
+import { PRELOADED_ICONS } from '../constants';
 
 interface AdminCMSProps {
   settings: PortfolioSettings;
@@ -366,6 +367,7 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ settings, onSaveSettings, onLogout 
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [copiedToForm, setCopiedToForm] = useState(false);
   const [blogImages, setBlogImages] = useState<Record<string, string>>({});
+  const [blogButtons, setBlogButtons] = useState<Record<string, { text: string; url: string; icon: string; bgColor?: string; textColor?: string }>>({});
   const [newImageUrl, setNewImageUrl] = useState('');
   const [previewBlog, setPreviewBlog] = useState(false);
 
@@ -472,6 +474,8 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
     image: '',
     tags: ['AI'],
     content: '',
+    images: {},
+    buttons: {},
     resources: [],
     questions: [],
     author: {
@@ -728,6 +732,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
       slug,
       image: finalImage,
       images: { ...blogImages, image0: finalImage },
+      buttons: blogButtons,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     };
 
@@ -746,6 +751,8 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
       image: '',
       tags: ['AI'],
       content: '',
+      images: {},
+      buttons: {},
       resources: [],
       questions: [],
       author: {
@@ -755,6 +762,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
       }
     });
     setBlogImages({});
+    setBlogButtons({});
   };
 
   const deleteBlog = (slug: string) => {
@@ -1674,14 +1682,182 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                     </button>
                   </div>
 
+                  {/* Button Placeholders Manager */}
+                  <div className="space-y-3 p-4 bg-[#121212] rounded-xl border border-[#222]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ExternalLink size={14} className="text-[#f59e0b]" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Button Placeholders</span>
+                      </div>
+                      <span className="text-[8px] text-gray-600 font-mono">{'{{button1}}'} inserts a styled link button</span>
+                    </div>
+
+                    {Object.keys(blogButtons).length > 0 && (
+                      <div className="space-y-3">
+                        {Object.entries(blogButtons).map(([key, btn]) => {
+                          const iconSlug = btn.icon || 'link';
+                          return (
+                            <div key={key} className="bg-[#1a1a1a] p-3 rounded-xl border border-[#222]/60 space-y-2">
+                              {/* Header row */}
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-mono font-bold text-[#f59e0b]">{`{{${key}}}`}</span>
+                                <div className="flex items-center gap-1.5">
+                                  {/* Preview icon */}
+                                  <img
+                                    src={`https://cdn.simpleicons.org/${iconSlug}`}
+                                    alt={iconSlug}
+                                    className="w-4 h-4 rounded"
+                                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                                  />
+                                  {/* Insert at cursor */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const textarea = document.getElementById('blog-markdown-textarea') as HTMLTextAreaElement;
+                                      if (textarea) {
+                                        const pos = textarea.selectionStart;
+                                        const before = newBlog.content.substring(0, pos);
+                                        const after = newBlog.content.substring(pos);
+                                        setNewBlog({ ...newBlog, content: `${before}{{${key}}}${after}` });
+                                      }
+                                    }}
+                                    title={`Insert {{${key}}} at cursor`}
+                                    aria-label={`Insert ${key} at cursor`}
+                                    className="text-gray-500 hover:text-[#f59e0b] p-1 shrink-0"
+                                  >
+                                    <Plus size={11} />
+                                  </button>
+                                  {/* Delete button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = { ...blogButtons };
+                                      delete updated[key];
+                                      setBlogButtons(updated);
+                                    }}
+                                    title={`Remove ${key}`}
+                                    aria-label={`Remove ${key}`}
+                                    className="text-red-500/60 hover:text-red-500 p-1 shrink-0"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                              {/* Inputs */}
+                              <input
+                                type="text"
+                                value={btn.text}
+                                onChange={e => setBlogButtons(prev => ({ ...prev, [key]: { ...prev[key], text: e.target.value } }))}
+                                placeholder="Button Label (e.g. Follow on LinkedIn)"
+                                className="w-full bg-[#121212] border border-[#222] rounded-lg px-2 py-1 text-[10px] text-white font-mono focus:outline-none focus:border-[#f59e0b]/40"
+                              />
+                              <input
+                                type="text"
+                                value={btn.url}
+                                onChange={e => setBlogButtons(prev => ({ ...prev, [key]: { ...prev[key], url: e.target.value } }))}
+                                placeholder="URL (https://...)"
+                                className="w-full bg-[#121212] border border-[#222] rounded-lg px-2 py-1 text-[10px] text-white font-mono focus:outline-none focus:border-[#f59e0b]/40"
+                              />
+                              {/* Icon selector */}
+                              <div className="space-y-1">
+                                <span className="text-[8px] text-gray-600 uppercase tracking-widest font-black">Icon</span>
+                                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                                  {PRELOADED_ICONS.map(ic => (
+                                    <button
+                                      key={ic.slug}
+                                      type="button"
+                                      onClick={() => setBlogButtons(prev => ({ ...prev, [key]: { ...prev[key], icon: ic.slug, bgColor: ic.color } }))}
+                                      title={ic.name}
+                                      aria-label={`Select ${ic.name} icon`}
+                                      className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all ${btn.icon === ic.slug ? 'border-[#f59e0b] bg-[#f59e0b]/10' : 'border-[#252525] bg-[#121212] hover:border-[#f59e0b]/40'}`}
+                                    >
+                                      <img
+                                        src={`https://cdn.simpleicons.org/${ic.slug}`}
+                                        alt={ic.name}
+                                        className="w-4 h-4"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                          (e.currentTarget.nextSibling as HTMLElement).style.display = 'block';
+                                        }}
+                                      />
+                                      <span style={{ display: 'none', fontSize: 8, color: '#888' }}>?</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* Color pickers */}
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[8px] text-gray-600 uppercase tracking-widest font-black">BG</span>
+                                  <input
+                                    type="color"
+                                    value={btn.bgColor || '#f59e0b'}
+                                    onChange={e => setBlogButtons(prev => ({ ...prev, [key]: { ...prev[key], bgColor: e.target.value } }))}
+                                    title="Button Background Color"
+                                    aria-label="Button Background Color"
+                                    className="w-8 h-6 rounded border border-[#222] cursor-pointer bg-transparent"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[8px] text-gray-600 uppercase tracking-widest font-black">Text</span>
+                                  <input
+                                    type="color"
+                                    value={btn.textColor || '#000000'}
+                                    onChange={e => setBlogButtons(prev => ({ ...prev, [key]: { ...prev[key], textColor: e.target.value } }))}
+                                    title="Button Text Color"
+                                    aria-label="Button Text Color"
+                                    className="w-8 h-6 rounded border border-[#222] cursor-pointer bg-transparent"
+                                  />
+                                </div>
+                                {/* Live preview pill */}
+                                <a
+                                  href={btn.url || '#'}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+                                  style={{ backgroundColor: btn.bgColor || '#f59e0b', color: btn.textColor || '#000' }}
+                                >
+                                  <img
+                                    src={`https://cdn.simpleicons.org/${iconSlug}/ffffff`}
+                                    alt=""
+                                    className="w-3 h-3"
+                                    style={{ filter: 'brightness(0) invert(1)' }}
+                                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                                  />
+                                  {btn.text || 'Preview'}
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextIdx = Object.keys(blogButtons).length + 1;
+                        const key = `button${nextIdx}`;
+                        setBlogButtons(prev => ({
+                          ...prev,
+                          [key]: { text: '', url: '', icon: 'link', bgColor: '#f59e0b', textColor: '#000000' }
+                        }));
+                      }}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 hover:text-[#f59e0b] bg-[#1a1a1a] hover:bg-[#f59e0b]/10 border border-[#222] hover:border-[#f59e0b]/20 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      <Plus size={12} />
+                      Add Button Placeholder
+                    </button>
+                  </div>
+
                   <div className="flex gap-3">
                     <button 
                       onClick={() => {
-                        // Sync image0 to cover image if present
+                        // Sync image0 to cover image if present, merge buttons
                         if (blogImages.image0 && !newBlog.image) {
-                          setNewBlog(prev => ({ ...prev, image: blogImages.image0, images: blogImages }));
+                          setNewBlog(prev => ({ ...prev, image: blogImages.image0, images: blogImages, buttons: blogButtons }));
                         } else {
-                          setNewBlog(prev => ({ ...prev, images: blogImages }));
+                          setNewBlog(prev => ({ ...prev, images: blogImages, buttons: blogButtons }));
                         }
                         addBlog();
                       }}
@@ -1727,7 +1903,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">{newBlog.title || 'Untitled'}</h1>
                         <p className="text-gray-400 text-sm leading-relaxed">{newBlog.description}</p>
                         <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-[1.8] text-[15px]">
-                          <div dangerouslySetInnerHTML={{ __html: parseMarkdown(newBlog.content, { ...blogImages, ...(newBlog.images || {}) }) }} />
+                          <div dangerouslySetInnerHTML={{ __html: parseMarkdown(newBlog.content, { ...blogImages, ...(newBlog.images || {}) }, { ...blogButtons, ...(newBlog.buttons || {}) }) }} />
                         </div>
                       </div>
                     </div>
@@ -1829,6 +2005,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                                     tags: msg.generatedPost.tags as any[],
                                     content: msg.generatedPost.content,
                                     images: initialImages,
+                                    buttons: msg.generatedPost.buttons || {},
                                     resources: [
                                       { title: 'Official Documentation', url: 'https://supabase.com' }
                                     ],
@@ -1873,6 +2050,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                                     tags: msg.generatedPost.tags as any[],
                                     content: msg.generatedPost.content,
                                     images: initialImages,
+                                    buttons: msg.generatedPost.buttons || {},
                                     resources: [
                                       { title: 'Official Documentation', url: 'https://supabase.com' }
                                     ],
