@@ -69,6 +69,7 @@ export interface BlogPost {
   image: string;
   tags: BlogTag[];
   content: string;
+  images?: Record<string, string>;
   resources?: BlogResource[];
   questions?: BlogQuestion[];
   author: {

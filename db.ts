@@ -460,10 +460,22 @@ export const addLike = async (postSlug: string): Promise<boolean> => {
   }
 };
 
-// Custom Markdown Parser supporting tables, images, bold, and headers
-export const parseMarkdown = (markdown: string): string => {
+// Custom Markdown Parser supporting tables, images, bold, headers, and {{imageN}} placeholders
+export const parseMarkdown = (markdown: string, images?: Record<string, string>): string => {
   if (!markdown) return '';
   let html = markdown;
+  
+  // 0. Replace {{imageN}} placeholders with markdown image syntax
+  if (images) {
+    html = html.replace(/\{\{(image\d+)\}\}/g, (match, key) => {
+      const url = images[key];
+      if (url) {
+        const processedUrl = formatImageUrl(url.trim());
+        return `![${key}](${processedUrl})`;
+      }
+      return match; // leave placeholder if no URL mapped
+    });
+  }
   
   // 1. Process headers (## header, ### header)
   html = html.replace(/^##\s+(.*$)/gim, '<h2 class="text-2xl md:text-3xl font-black text-white mt-12 md:mt-20 mb-6 md:mb-8 tracking-tight border-l-4 border-[#f59e0b] pl-4 md:pl-6">$1</h2>');

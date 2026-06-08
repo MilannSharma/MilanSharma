@@ -30,10 +30,12 @@ import {
   ArrowUp,
   ArrowDown,
   Eye,
-  EyeOff
+  EyeOff,
+  Image,
+  ImagePlus
 } from 'lucide-react';
 import { PortfolioSettings, Lead, Product, Skill, Project, CertificationCategory, LifeStyle } from '../types';
-import { getDbStatus, SQL_SCHEMA, fetchLeads, fetchAnalytics, AnalyticsData, supabase } from '../db';
+import { getDbStatus, SQL_SCHEMA, fetchLeads, fetchAnalytics, AnalyticsData, supabase, parseMarkdown, formatImageUrl } from '../db';
 import { BlogPost } from '../types';
 
 interface AdminCMSProps {
@@ -360,6 +362,9 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ settings, onSaveSettings, onLogout 
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [copiedToForm, setCopiedToForm] = useState(false);
+  const [blogImages, setBlogImages] = useState<Record<string, string>>({});
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [previewBlog, setPreviewBlog] = useState(false);
 
   const handleSendChatMessage = async (promptText: string) => {
     if (!promptText.trim() || isAiLoading) return;
@@ -374,15 +379,27 @@ const AdminCMS: React.FC<AdminCMSProps> = ({ settings, onSaveSettings, onLogout 
     
     if (apiKey && apiKey.trim() && apiKey !== 'PLACEHOLDER_API_KEY') {
       try {
-        const systemPrompt = `You are a technical blog writer. Draft a comprehensive, high-quality blog post about the topic: "${promptText}". 
+        const systemPrompt = `You are a senior technical content writer creating premium, in-depth blog posts for a professional portfolio. Write about: "${promptText}".
+
+Rules:
+- Write 1500+ words of REAL, factual, market-relevant content — not filler or placeholder text
+- Include real industry data, statistics, company names, and current market trends (2024-2025)
+- Use multiple ## and ### sections for structure
+- Include at least one markdown comparison table with | col | col | syntax
+- Include inline code examples with backticks where relevant
+- Use **bold** for key terms and emphasis
+- Use {{image1}}, {{image2}} etc. as image placeholders in the content where visuals would help (the user will map these to real URLs later)
+- Do NOT include {{image0}} in the content — it is reserved for the thumbnail
+- Make the writing authoritative, data-driven, and publication-ready
+
 You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) in this exact format:
 {
-  "title": "A short engaging title",
-  "description": "A brief overview of the post",
-  "tags": ["Tag1", "Tag2"],
-  "readTime": "e.g. 5 MIN READ",
+  "title": "An engaging, SEO-optimized title",
+  "description": "A compelling 2-sentence overview for the blog card",
+  "tags": ["Tag1", "Tag2", "Tag3"],
+  "readTime": "e.g. 12 MIN READ",
   "image": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800",
-  "content": "Full markdown content starting with ## headers, using **bold**, inline code \`code\`, a markdown table | col | col |, and at least one Google Drive image reference formatted like ![System Flowchart](https://drive.google.com/file/d/1XyZ-902Jb10y-Z98h8o90y_pqr_xyz/view)"
+  "content": "Full markdown content here with ## headers, **bold**, tables, code blocks, and {{image1}} {{image2}} placeholders"
 }`;
 
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
@@ -702,9 +719,12 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
   const addBlog = () => {
     if (!newBlog.title || !newBlog.content) return;
     const slug = newBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const blogToAdd = {
+    const finalImage = blogImages.image0 || newBlog.image || 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800';
+    const blogToAdd: BlogPost = {
       ...newBlog,
       slug,
+      image: finalImage,
+      images: { ...blogImages, image0: finalImage },
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     };
 
@@ -731,6 +751,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
         avatar: '/1769519621500.png'
       }
     });
+    setBlogImages({});
   };
 
   const deleteBlog = (slug: string) => {
@@ -1550,13 +1571,135 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                     />
                   </div>
 
-                  <button 
-                    onClick={addBlog}
-                    className="bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/30 hover:bg-[#f59e0b]/20 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
-                  >
-                    <Plus size={14} /> Add Blog Post
-                  </button>
+                  {/* Image Placeholders Manager */}
+                  <div className="space-y-3 p-4 bg-[#121212] rounded-xl border border-[#222]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Image size={14} className="text-[#f59e0b]" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Image Placeholders</span>
+                      </div>
+                      <span className="text-[8px] text-gray-600 font-mono">{'{{image0}}'} = thumbnail</span>
+                    </div>
+                    
+                    {Object.keys(blogImages).length > 0 && (
+                      <div className="space-y-2">
+                        {Object.entries(blogImages).map(([key, url]) => (
+                          <div key={key} className="flex items-center gap-2 bg-[#1a1a1a] p-2 rounded-lg border border-[#222]/60">
+                            <span className="text-[9px] font-mono font-bold text-[#f59e0b] whitespace-nowrap">{`{{${key}}}`}</span>
+                            <input
+                              type="text"
+                              value={url}
+                              onChange={e => setBlogImages(prev => ({ ...prev, [key]: e.target.value }))}
+                              placeholder="Paste image URL..."
+                              title={`URL for ${key}`}
+                              className="flex-1 bg-[#121212] border border-[#222] rounded-lg px-2 py-1 text-[10px] text-white font-mono focus:outline-none focus:border-[#f59e0b]/40 min-w-0"
+                            />
+                            {url && <img src={formatImageUrl(url)} alt="" className="w-8 h-8 rounded object-cover border border-[#222] shrink-0" />}
+                            <button
+                              onClick={() => {
+                                const updated = { ...blogImages };
+                                delete updated[key];
+                                setBlogImages(updated);
+                              }}
+                              aria-label={`Remove ${key}`}
+                              title={`Remove ${key}`}
+                              className="text-red-500/60 hover:text-red-500 p-1 shrink-0"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const textarea = document.getElementById('blog-markdown-textarea') as HTMLTextAreaElement;
+                                if (textarea) {
+                                  const pos = textarea.selectionStart;
+                                  const before = newBlog.content.substring(0, pos);
+                                  const after = newBlog.content.substring(pos);
+                                  setNewBlog({ ...newBlog, content: `${before}{{${key}}}${after}` });
+                                }
+                              }}
+                              aria-label={`Insert ${key} placeholder`}
+                              title={`Insert {{${key}}} at cursor`}
+                              className="text-gray-500 hover:text-[#f59e0b] p-1 shrink-0"
+                            >
+                              <Plus size={11} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextIdx = Object.keys(blogImages).length === 0 ? 0 : Math.max(...Object.keys(blogImages).map(k => parseInt(k.replace('image', '')) || 0)) + 1;
+                        setBlogImages(prev => ({ ...prev, [`image${nextIdx}`]: '' }));
+                      }}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 hover:text-[#f59e0b] bg-[#1a1a1a] hover:bg-[#f59e0b]/10 border border-[#222] hover:border-[#f59e0b]/20 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      <ImagePlus size={12} />
+                      Add Image Placeholder
+                    </button>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => {
+                        // Sync image0 to cover image if present
+                        if (blogImages.image0 && !newBlog.image) {
+                          setNewBlog(prev => ({ ...prev, image: blogImages.image0, images: blogImages }));
+                        } else {
+                          setNewBlog(prev => ({ ...prev, images: blogImages }));
+                        }
+                        addBlog();
+                      }}
+                      className="bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/30 hover:bg-[#f59e0b]/20 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                    >
+                      <Plus size={14} /> Add Blog Post
+                    </button>
+                    <button 
+                      onClick={() => setPreviewBlog(true)}
+                      disabled={!newBlog.title.trim() && !newBlog.content.trim()}
+                      className="bg-[#121212] text-gray-300 hover:text-white border border-[#252525] hover:border-[#f59e0b]/30 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 disabled:opacity-40 transition-all"
+                    >
+                      <Eye size={14} /> Preview
+                    </button>
+                  </div>
                 </div>
+
+                {/* Blog Preview Modal */}
+                {previewBlog && (
+                  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-start justify-center overflow-y-auto p-4 md:p-10">
+                    <div className="bg-[#1a1a1a] rounded-[28px] border border-[#222] w-full max-w-3xl relative">
+                      <div className="sticky top-0 bg-[#1a1a1a] border-b border-[#222] px-6 py-4 rounded-t-[28px] flex items-center justify-between z-10">
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Blog Preview</h3>
+                        <button
+                          onClick={() => setPreviewBlog(false)}
+                          aria-label="Close Preview"
+                          title="Close Preview"
+                          className="text-gray-400 hover:text-white bg-[#121212] hover:bg-[#252525] p-2 rounded-xl border border-[#222] transition-all"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                      <div className="p-6 md:p-10 space-y-6">
+                        {newBlog.image && (
+                          <div className="aspect-[21/9] w-full rounded-2xl overflow-hidden border border-[#222]">
+                            <img src={formatImageUrl(blogImages.image0 || newBlog.image)} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 text-[10px] font-black text-[#f59e0b] uppercase tracking-widest">
+                          {newBlog.tags.map(t => <span key={t}>{t}</span>)}
+                          {newBlog.readTime && <span className="text-gray-500">{newBlog.readTime}</span>}
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-tight">{newBlog.title || 'Untitled'}</h1>
+                        <p className="text-gray-400 text-sm leading-relaxed">{newBlog.description}</p>
+                        <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-[1.8] text-[15px]">
+                          <div dangerouslySetInnerHTML={{ __html: parseMarkdown(newBlog.content, { ...blogImages, ...(newBlog.images || {}) }) }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* List of current blogs */}
                 <div className="bg-[#1a1a1a] p-6 rounded-2xl border border-[#222] space-y-4">
@@ -1627,38 +1770,95 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                             <h4 className="text-white font-bold text-xs leading-snug">{msg.generatedPost.title}</h4>
                             <p className="text-gray-500 text-[10px] line-clamp-2 leading-relaxed">{msg.generatedPost.description}</p>
                             
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!msg.generatedPost) return;
-                                setNewBlog({
-                                  slug: msg.generatedPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-                                  title: msg.generatedPost.title,
-                                  description: msg.generatedPost.description,
-                                  date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
-                                  readTime: msg.generatedPost.readTime,
-                                  image: msg.generatedPost.image,
-                                  tags: msg.generatedPost.tags as any[],
-                                  content: msg.generatedPost.content,
-                                  resources: [
-                                    { title: 'Official Documentation', url: 'https://supabase.com' }
-                                  ],
-                                  questions: [
-                                    { question: 'What is the main takeaway of this post?', answer: 'Applying standard optimizations and understanding runtime behavior is critical to web performance.' }
-                                  ],
-                                  author: {
-                                    name: localSettings.name || 'Milan Sharma',
-                                    role: 'Founder',
-                                    avatar: localSettings.avatar || '/1769519621500.png'
+                            <div className="grid grid-cols-2 gap-2 mt-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!msg.generatedPost) return;
+                                  const initialImages: Record<string, string> = { image0: msg.generatedPost.image };
+                                  const matches = msg.generatedPost.content.match(/\{\{image\d+\}\}/g);
+                                  if (matches) {
+                                    matches.forEach((m: string) => {
+                                      const key = m.replace(/[\{\}]/g, '');
+                                      if (!initialImages[key]) {
+                                        initialImages[key] = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800';
+                                      }
+                                    });
                                   }
-                                });
-                                setCopiedToForm(true);
-                                setTimeout(() => setCopiedToForm(false), 3000);
-                              }}
-                              className="w-full mt-2 bg-[#f59e0b] hover:bg-white text-black py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-md"
-                            >
-                              <Sparkles size={11} /> Convert to Blog Form
-                            </button>
+                                  setBlogImages(initialImages);
+                                  setNewBlog({
+                                    slug: msg.generatedPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+                                    title: msg.generatedPost.title,
+                                    description: msg.generatedPost.description,
+                                    date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+                                    readTime: msg.generatedPost.readTime,
+                                    image: msg.generatedPost.image,
+                                    tags: msg.generatedPost.tags as any[],
+                                    content: msg.generatedPost.content,
+                                    images: initialImages,
+                                    resources: [
+                                      { title: 'Official Documentation', url: 'https://supabase.com' }
+                                    ],
+                                    questions: [
+                                      { question: 'What is the main takeaway of this post?', answer: 'Applying standard optimizations and understanding runtime behavior is critical to web performance.' }
+                                    ],
+                                    author: {
+                                      name: localSettings.name || 'Milan Sharma',
+                                      role: 'Founder',
+                                      avatar: localSettings.avatar || '/1769519621500.png'
+                                    }
+                                  });
+                                  setCopiedToForm(true);
+                                  setTimeout(() => setCopiedToForm(false), 3000);
+                                }}
+                                className="bg-[#f59e0b] hover:bg-white text-black py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-md"
+                              >
+                                <Sparkles size={11} /> Convert
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!msg.generatedPost) return;
+                                  const initialImages: Record<string, string> = { image0: msg.generatedPost.image };
+                                  const matches = msg.generatedPost.content.match(/\{\{image\d+\}\}/g);
+                                  if (matches) {
+                                    matches.forEach((m: string) => {
+                                      const key = m.replace(/[\{\}]/g, '');
+                                      if (!initialImages[key]) {
+                                        initialImages[key] = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800';
+                                      }
+                                    });
+                                  }
+                                  setBlogImages(initialImages);
+                                  setNewBlog({
+                                    slug: msg.generatedPost.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+                                    title: msg.generatedPost.title,
+                                    description: msg.generatedPost.description,
+                                    date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+                                    readTime: msg.generatedPost.readTime,
+                                    image: msg.generatedPost.image,
+                                    tags: msg.generatedPost.tags as any[],
+                                    content: msg.generatedPost.content,
+                                    images: initialImages,
+                                    resources: [
+                                      { title: 'Official Documentation', url: 'https://supabase.com' }
+                                    ],
+                                    questions: [
+                                      { question: 'What is the main takeaway of this post?', answer: 'Applying standard optimizations and understanding runtime behavior is critical to web performance.' }
+                                    ],
+                                    author: {
+                                      name: localSettings.name || 'Milan Sharma',
+                                      role: 'Founder',
+                                      avatar: localSettings.avatar || '/1769519621500.png'
+                                    }
+                                  });
+                                  setPreviewBlog(true);
+                                }}
+                                className="bg-[#121212] hover:bg-[#222] text-white border border-[#252525] py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-md"
+                              >
+                                <Eye size={11} /> Preview
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>

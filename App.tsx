@@ -227,7 +227,7 @@ const App: React.FC = () => {
           <div className="prose prose-invert prose-lg max-w-none space-y-6 md:space-y-8 text-gray-300 leading-[1.7] md:leading-[1.8] text-[16px] md:text-[18px]">
              <div 
                dangerouslySetInnerHTML={{ 
-                 __html: parseMarkdown(post.content)
+                 __html: parseMarkdown(post.content, post.images)
                }} 
              />
           </div>
@@ -894,7 +894,7 @@ const App: React.FC = () => {
   return (
     <div className="relative min-h-screen bg-[#090909] text-gray-300 p-3 sm:p-6 md:p-10 lg:p-16 font-sans selection:bg-[#f59e0b] selection:text-black">
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 md:gap-10 items-start relative z-10">
-        <Sidebar profile={settings} onAdminTrigger={() => setIsAdminLoginOpen(true)} />
+        <Sidebar profile={settings} onAdminTrigger={() => setIsAdminLoginOpen(true)} onNavigate={navigateToTab} />
         <main className="flex-1 bg-[#1a1a1a] rounded-[32px] md:rounded-[48px] border border-[#222] p-6 sm:p-10 md:p-14 main-card-shadow relative overflow-hidden mb-24 lg:mb-0">
           
           <div className="flex flex-col md:flex-row md:items-start justify-between mb-10 md:mb-16 relative z-10">
@@ -912,9 +912,6 @@ const App: React.FC = () => {
                 </button>
                 <button onClick={() => navigateToTab('resume')} className={`${activeTab === 'resume' ? 'text-[#f59e0b]' : 'hover:text-white'} transition-colors whitespace-nowrap`}>
                   Resume
-                </button>
-                <button onClick={() => navigateToTab('products')} className={`${activeTab === 'products' ? 'text-[#f59e0b]' : 'hover:text-white'} transition-colors whitespace-nowrap`}>
-                  Products
                 </button>
                 <button onClick={() => navigateToTab('library')} className={`${activeTab === 'library' ? 'text-[#f59e0b]' : 'hover:text-white'} transition-colors whitespace-nowrap`}>
                   Library
@@ -936,19 +933,19 @@ const App: React.FC = () => {
       <div className={`fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 z-[100] transition-all duration-700 transform ${showFloatingNav ? 'translate-y-0 opacity-100' : 'translate-y-32 opacity-0'} w-full px-4 md:px-6 max-w-sm md:max-w-md`}>
         <div className="bg-[#121212]/30 backdrop-blur-[28px] border border-white/10 px-6 md:px-10 py-4 md:py-5 rounded-[24px] md:rounded-[36px] flex items-center justify-between shadow-[0_25px_60px_rgba(0,0,0,0.6)] mobile-nav-shadow">
           <button onClick={() => navigateToTab('about')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'about' ? 'text-[#f59e0b] scale-110' : 'text-gray-500 hover:text-white'}`}>
-            <User size={24} strokeWidth={2.5} />
+            <User size={22} strokeWidth={2.5} />
             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Bio</span>
           </button>
           <button onClick={() => navigateToTab('resume')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'resume' ? 'text-[#f59e0b] scale-110' : 'text-gray-500 hover:text-white'}`}>
-            <FileText size={24} strokeWidth={2.5} />
+            <FileText size={22} strokeWidth={2.5} />
             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Work</span>
           </button>
-          <button onClick={() => navigateToTab('products')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'products' ? 'text-[#f59e0b] scale-110' : 'text-gray-500 hover:text-white'}`}>
-            <BookOpen size={24} strokeWidth={2.5} />
-            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Products</span>
+          <button onClick={() => navigateToTab('library')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'library' ? 'text-[#f59e0b] scale-110' : 'text-gray-500 hover:text-white'}`}>
+            <BookOpen size={22} strokeWidth={2.5} />
+            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Library</span>
           </button>
           <button onClick={() => navigateToTab('contact')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'contact' ? 'text-[#f59e0b] scale-110' : 'text-gray-500 hover:text-white'}`}>
-            <MessageSquare size={24} strokeWidth={2.5} />
+            <MessageSquare size={22} strokeWidth={2.5} />
             <span className="text-[8px] md:text-[10px] font-black uppercase tracking-widest">Talk</span>
           </button>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Github, Linkedin, Mail, MapPin, Smartphone, Phone, Globe, ExternalLink } from 'lucide-react';
+import { Github, Linkedin, Mail, MapPin, Smartphone, Phone, Globe, ExternalLink, Package } from 'lucide-react';
 import { PERSONAL_INFO } from '../constants';
 
 interface SidebarProps {
@@ -14,9 +14,10 @@ interface SidebarProps {
     avatar: string;
   };
   onAdminTrigger?: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ profile, onAdminTrigger }) => {
+const Sidebar: React.FC<SidebarProps> = ({ profile, onAdminTrigger, onNavigate }) => {
   const info = profile || PERSONAL_INFO;
   const [clickCount, setClickCount] = useState(0);
   const [lastClickTime, setLastClickTime] = useState(0);
@@ -66,6 +67,14 @@ const Sidebar: React.FC<SidebarProps> = ({ profile, onAdminTrigger }) => {
           Founder of Nexa Technologies
           <ExternalLink size={12} />
         </a>
+
+        <button
+          onClick={() => onNavigate?.('products')}
+          className="w-full flex items-center justify-center gap-2.5 bg-[#121212] hover:bg-[#f59e0b]/10 text-gray-400 hover:text-[#f59e0b] border border-[#252525] hover:border-[#f59e0b]/30 py-2.5 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 mb-8"
+        >
+          <Package size={14} />
+          Products
+        </button>
         
         <div className="w-full space-y-5 md:space-y-7 text-left pt-8 md:pt-10 border-t border-[#252525]">
           <ContactItem icon={<MapPin size={18} />} label="LOCATION" value={info.location} />
@@ -82,6 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ profile, onAdminTrigger }) => {
            <a href="#" aria-label="Personal Website" title="Personal Website" className="hover:text-[#f59e0b] transition-colors"><Globe size={18} /></a>
         </div>
         
+
         <div className="mt-6 md:mt-8 text-[8px] md:text-[9px] text-gray-700 font-mono tracking-[0.3em] uppercase">
           &copy; 2024 <span className="text-[#f59e0b] font-black">MILAN.SH</span>
         </div>
