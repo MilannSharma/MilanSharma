@@ -9,6 +9,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  * with JSON-LD schemas for SEO/AEO/GEO.
  */
 
+import { POSTS } from '../blogData';
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const SITE_URL = 'https://milansharma.qzz.io';
@@ -27,7 +29,8 @@ interface BlogPost {
 }
 
 async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const fallback = POSTS.find((p) => p.slug === slug) || null;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return fallback;
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/portfolio_settings?id=eq.milan&select=data`,
@@ -39,15 +42,16 @@ async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
         },
       }
     );
-    if (!res.ok) return null;
+    if (!res.ok) return fallback;
     const rows = await res.json();
-    if (!rows || !rows[0]?.data?.blogs) return null;
+    if (!rows || !rows[0]?.data?.blogs) return fallback;
     const blogs: BlogPost[] = rows[0].data.blogs;
-    return blogs.find((p) => p.slug === slug) || null;
+    return blogs.find((p) => p.slug === slug) || fallback;
   } catch {
-    return null;
+    return fallback;
   }
 }
+
 
 function escapeHtml(str: string): string {
   return (str || '')

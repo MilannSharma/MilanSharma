@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+import { POSTS } from '../blogData';
+
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const SITE_URL = 'https://milansharma.qzz.io';
@@ -19,7 +21,8 @@ interface BlogPost {
 }
 
 async function fetchBlogs(): Promise<BlogPost[]> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return [];
+  const fallback = POSTS.map(p => ({ slug: p.slug, date: p.date, title: p.title }));
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return fallback;
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/portfolio_settings?id=eq.milan&select=data`,
@@ -31,12 +34,12 @@ async function fetchBlogs(): Promise<BlogPost[]> {
         },
       }
     );
-    if (!res.ok) return [];
+    if (!res.ok) return fallback;
     const rows = await res.json();
-    if (!rows || !rows[0]?.data?.blogs) return [];
+    if (!rows || !rows[0]?.data?.blogs) return fallback;
     return rows[0].data.blogs as BlogPost[];
   } catch {
-    return [];
+    return fallback;
   }
 }
 
