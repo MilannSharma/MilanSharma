@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="owWW1g5ldcwWdssYGzNGOSn_6d9RJPEUNqy53UkrPys" />
     <meta name="msvalidate.01" content="C2055EB08EE512BB8700C627A10811DF" />
     <title>Milan Sharma | Product Manager - GenAI & Agentic AI | Nexa Technologies</title>
@@ -146,8 +146,8 @@
         }
 
         .marquee-mask {
-            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
         }
 
         .main-card-shadow {
@@ -172,6 +172,32 @@
 
         .no-scrollbar::-webkit-scrollbar {
             display: none;
+        }
+
+        /* Fallback Shell Styles */
+        .fb-header {
+            padding: 20px;
+            text-align: center;
+        }
+        .fb-h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+        }
+        .fb-sub {
+            font-size: 1.2rem;
+            color: #f59e0b;
+            margin-top: 0;
+        }
+        .fb-nav {
+            margin: 20px 0;
+        }
+        .fb-nav-link {
+            margin: 0 10px;
+        }
+        .fb-main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
         }
     </style>
     <script type="importmap">
@@ -198,20 +224,20 @@
 <body>
     <div id="root">
         <!-- Static content for non-JS crawlers (AEO/GEO/SEO) -->
-        <header style="padding: 20px; text-align: center;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 5px;">Milan Sharma</h1>
-            <p style="font-size: 1.2rem; color: #f59e0b; margin-top: 0;">Product Manager - GenAI & Agentic AI | Founder of Nexa Technologies</p>
+        <header class="fb-header">
+            <h1 class="fb-h1">Milan Sharma</h1>
+            <p class="fb-sub">Product Manager - GenAI & Agentic AI | Founder of Nexa Technologies</p>
             <p>Location: Jaipur, Rajasthan, India | Email: milansharma942105@gmail.com</p>
-            <nav style="margin: 20px 0;">
-                <a href="/" style="margin: 0 10px;">About</a> |
-                <a href="/resume" style="margin: 0 10px;">Resume</a> |
-                <a href="/products" style="margin: 0 10px;">Products</a> |
-                <a href="/library" style="margin: 0 10px;">Library</a> |
-                <a href="/contact" style="margin: 0 10px;">Contact</a>
+            <nav class="fb-nav">
+                <a href="/" class="fb-nav-link">About</a> |
+                <a href="/resume" class="fb-nav-link">Resume</a> |
+                <a href="/products" class="fb-nav-link">Products</a> |
+                <a href="/library" class="fb-nav-link">Library</a> |
+                <a href="/contact" class="fb-nav-link">Contact</a>
             </nav>
         </header>
         
-        <main style="max-width: 800px; margin: 0 auto; padding: 20px;">
+        <main class="fb-main">
             <section id="bio">
                 <h2>About Milan Sharma</h2>
                 <p>Milan Sharma is a results-oriented Product Manager specializing in GenAI and Agentic AI, based in Jaipur, Rajasthan. With a robust technical background as a Python Developer and Data Engineer, Milan is the founder of Nexa Technologies, driving innovation in artificial intelligence, agentic automation systems, and SaaS product strategies.</p>
