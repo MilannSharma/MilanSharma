@@ -1,7 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import { POSTS } from './blogData';
-
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const SITE_URL = 'https://milansharma.qzz.io';
@@ -20,6 +18,29 @@ interface BlogPost {
   title: string;
 }
 
+const POSTS: BlogPost[] = [
+  {
+    slug: 'deepseek-r1-the-reasoning-revolution',
+    title: 'DeepSeek-R1: Redefining Open-Source Reasoning',
+    date: 'February 20, 2025'
+  },
+  {
+    slug: 'openai-o3-mini-stem-breakthrough',
+    title: 'OpenAI o3-mini: STEM Reasoning for the Masses',
+    date: 'February 18, 2025'
+  },
+  {
+    slug: 'gemini-2-flash-native-multimodal',
+    title: 'Gemini 2.0 Flash: Native Multimodal Architecture',
+    date: 'February 15, 2025'
+  },
+  {
+    slug: 'agentic-rag-patterns-2025',
+    title: 'Agentic RAG: Beyond Simple Vector Search',
+    date: 'February 10, 2025'
+  }
+];
+
 async function fetchBlogs(): Promise<BlogPost[]> {
   const fallback = POSTS.map(p => ({ slug: p.slug, date: p.date, title: p.title }));
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return fallback;
@@ -37,7 +58,8 @@ async function fetchBlogs(): Promise<BlogPost[]> {
     if (!res.ok) return fallback;
     const rows = await res.json();
     if (!rows || !rows[0]?.data?.blogs) return fallback;
-    return rows[0].data.blogs as BlogPost[];
+    const blogs: BlogPost[] = rows[0].data.blogs;
+    return blogs.find((p) => p.slug) ? blogs : fallback;
   } catch {
     return fallback;
   }
@@ -74,10 +96,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset
-  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-    http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  xmlns="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd"
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${staticUrls}
 ${blogUrls}
 </urlset>`;
