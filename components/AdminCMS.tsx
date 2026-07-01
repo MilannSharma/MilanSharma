@@ -2005,7 +2005,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                                     tags: msg.generatedPost.tags as any[],
                                     content: msg.generatedPost.content,
                                     images: initialImages,
-                                    buttons: msg.generatedPost.buttons || {},
+                                    buttons: (msg.generatedPost as any).buttons || {},
                                     resources: [
                                       { title: 'Official Documentation', url: 'https://supabase.com' }
                                     ],
@@ -2050,7 +2050,7 @@ You must respond ONLY with a JSON object (no markdown wrapping like \`\`\`json) 
                                     tags: msg.generatedPost.tags as any[],
                                     content: msg.generatedPost.content,
                                     images: initialImages,
-                                    buttons: msg.generatedPost.buttons || {},
+                                    buttons: (msg.generatedPost as any).buttons || {},
                                     resources: [
                                       { title: 'Official Documentation', url: 'https://supabase.com' }
                                     ],

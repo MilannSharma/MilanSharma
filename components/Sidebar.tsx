@@ -14,7 +14,7 @@ interface SidebarProps {
     avatar: string;
   };
   onAdminTrigger?: () => void;
-  onNavigate?: (tab: string) => void;
+  onNavigate?: (tab: any) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ profile, onAdminTrigger, onNavigate }) => {
