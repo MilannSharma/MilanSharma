@@ -11,7 +11,7 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({ products, onDownloadT
   return (
     <div className="space-y-10 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
-        <h2 className="text-xl md:text-2xl font-black text-white tracking-tighter mb-4 md:mb-6">Breakthrough Products</h2>
+        <h1 className="text-xl md:text-2xl font-black text-white tracking-tighter mb-4 md:mb-6">Breakthrough Products</h1>
         <p className="text-gray-400 text-[14px] md:text-[16px] leading-relaxed font-medium max-w-2xl">
           Innovative tools, applications, and assets built to solve complex software engineering and data workflows.
         </p>

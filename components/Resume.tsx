@@ -52,7 +52,7 @@ const Resume: React.FC<ResumeProps> = ({ resumeData, resumeLink }) => {
     <div className="space-y-10 md:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Download Section */}
       <div>
-        <h2 className="text-xl md:text-2xl font-black text-white tracking-tighter mb-6 md:mb-8">Milan Resume</h2>
+        <h1 className="text-xl md:text-2xl font-black text-white tracking-tighter mb-6 md:mb-8">Milan Resume</h1>
         <a 
           href={downloadLink} 
           onClick={handleDownload}

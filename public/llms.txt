@@ -1,0 +1,25 @@
+# Milan Sharma
+
+> Product Manager specializing in GenAI and Agentic AI, based in Jaipur, India.
+> Founder, Nexa Technologies.
+
+## About
+Results-oriented professional with a diverse skill set spanning Python Development, Data Analysis, and Data Engineering. Proven track record of designing scalable software solutions, implementing efficient data strategies, and building agentic LLM applications. Passionate about product management in GenAI and Agentic AI.
+
+## Experience
+- Founder, Nexa Technologies
+- Data Scientist Intern, Upflairs (Jaipur, India)
+- Python Developer & Data Engineer, Freelance
+
+## Skills
+- Product Management (GenAI, Agentic AI, SaaS product strategy, UI/UX design)
+- Programming & Databases (Python, FastAPI, Flask, SQL, MySQL, SQLite)
+- Data Engineering & Analysis (ETL pipelines, Pandas, NumPy, Matplotlib, Seaborn, Statistics)
+- Machine Learning (Scikit-Learn, Regression, Classification, Clustering, Neural Networks)
+- Enterprise Systems (Oracle Fusion ERP, P2P/O2C, Master Data Management)
+
+## Links
+- Portfolio: https://milansharma.qzz.io
+- LinkedIn: https://linkedin.com/in/milansharma01
+- GitHub: https://github.com/milannsharma
+- Resume (PDF): https://milansharma.qzz.io/pdf/Milan-Sharma.pdf

@@ -124,12 +124,12 @@ const App: React.FC = () => {
 
   // Dynamic SEO & Metadata Updates
   useEffect(() => {
-    const siteUrl = 'https://milansharma-ai.vercel.app';
-    let title = 'Milan Sharma | AI Product Manager & Founder of Nexa Technologies';
-    let description = 'Milan Sharma | AI Product Manager, SaaS Product Manager, Technical Product Manager, and Founder of Nexa Technologies. Product portfolio, experience, bio, and neural library blogs.';
+    const siteUrl = 'https://milansharma.qzz.io';
+    let title = 'Milan Sharma | Product Manager - GenAI & Agentic AI | Nexa Technologies';
+    let description = 'Milan Sharma | Product Manager specializing in GenAI and Agentic AI at Nexa Technologies in Jaipur, with a strong background in data engineering.';
     let canonical = `${siteUrl}${location.pathname}`;
     let ogType = 'website';
-    let ogImage = settings.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800';
+    let ogImage = settings.avatar ? (settings.avatar.startsWith('http') ? settings.avatar : `${siteUrl}${settings.avatar}`) : `${siteUrl}/1769519621500.png`;
     let schemaData: any = null;
 
     if (selectedPostSlug) {
@@ -138,7 +138,7 @@ const App: React.FC = () => {
         title = `${post.title} | Milan Sharma`;
         description = post.description || description;
         ogType = 'article';
-        ogImage = formatImageUrl(post.image);
+        ogImage = post.image ? (post.image.startsWith('http') ? post.image : `${siteUrl}${formatImageUrl(post.image)}`) : ogImage;
         
         // BlogPosting Schema
         schemaData = {
@@ -146,19 +146,19 @@ const App: React.FC = () => {
           "@type": "BlogPosting",
           "headline": post.title,
           "description": post.description,
-          "image": formatImageUrl(post.image),
+          "image": ogImage,
           "datePublished": new Date(post.date).toISOString().slice(0, 10),
           "author": {
             "@type": "Person",
             "name": post.author?.name || settings.name,
-            "image": post.author?.avatar || settings.avatar
+            "image": post.author?.avatar ? (post.author.avatar.startsWith('http') ? post.author.avatar : `${siteUrl}${post.author.avatar}`) : ogImage
           },
           "publisher": {
             "@type": "Organization",
             "name": "Nexa Technologies",
             "logo": {
               "@type": "ImageObject",
-              "url": settings.avatar
+              "url": settings.avatar ? (settings.avatar.startsWith('http') ? settings.avatar : `${siteUrl}${settings.avatar}`) : ogImage
             }
           },
           "mainEntityOfPage": {
@@ -171,24 +171,24 @@ const App: React.FC = () => {
       // Tab-specific metadata
       switch (activeTab) {
         case 'about':
-          title = 'Milan Sharma | AI & SaaS Product Manager';
-          description = `Milan Sharma's official portfolio. AI Product Manager, SaaS Product Manager, Technical Product Manager, and Founder of Nexa Technologies.`;
+          title = 'Milan Sharma | Product Manager - GenAI & Agentic AI | Nexa Technologies';
+          description = 'Milan Sharma is a Product Manager specializing in GenAI and Agentic AI at Nexa Technologies in Jaipur, with a strong background in data engineering.';
           break;
         case 'resume':
-          title = 'Milan Sharma | Resume & Core Work Experience';
-          description = `Read Milan Sharma's professional resume. Review competencies, tech stack, leading AI initiatives, and product strategy.`;
+          title = 'Milan Sharma | Resume & Product Experience - Nexa Technologies';
+          description = 'Review Milan Sharma\'s professional experience, technical skills in Python and Data Engineering, and product leadership at Nexa Technologies.';
           break;
         case 'products':
-          title = 'Milan Sharma | Products & Enterprise Solutions';
-          description = `Explore SaaS platforms and enterprise tools built by Milan Sharma, including Nexa Billing System.`;
+          title = 'Milan Sharma | Breakthrough Products - Nexa Technologies';
+          description = 'Explore SaaS products, agentic AI assistants, and enterprise solutions developed by Milan Sharma, founder of Nexa Technologies.';
           break;
         case 'library':
-          title = 'NeuralPath Library | AI & Agentic Workflow Insights';
-          description = `High-signal insights and technical deep dives into AI engineering, Agentic Workflows, and Data Science.`;
+          title = 'NeuralPath Library | GenAI & Agentic Workflow Insights';
+          description = 'High-signal articles, technical guides, and research on GenAI, Agentic AI, Python development, and data engineering workflows.';
           break;
         case 'contact':
-          title = 'Contact Milan Sharma | Get In Touch';
-          description = `Have an AI project in mind or want to collaborate on product strategy? Connect directly with Milan Sharma.`;
+          title = 'Contact Milan Sharma | Product Manager & Nexa Founder';
+          description = 'Get in touch with Milan Sharma to discuss GenAI, Agentic AI projects, product strategy, or software development collaboration.';
           break;
       }
 
@@ -256,8 +256,8 @@ const App: React.FC = () => {
 
     // Update standard & SEO meta tags
     updateOrCreateMeta('name', 'description', description);
-    updateOrCreateMeta('name', 'robots', 'index, follow');
-    updateOrCreateMeta('name', 'keywords', 'Product Manager Portfolio, AI Product Manager, Technical Product Manager, Product Strategy, SaaS Product Manager, AI Product Management');
+    updateOrCreateMeta('name', 'robots', 'index, follow, max-image-preview:large');
+    updateOrCreateMeta('name', 'keywords', 'Milan Sharma, Milan Sharma PM, Milan Sharma Product Manager, Milan Sharma Data Engineer, Nexa Technologies, Nexa Technologies Founder, GenAI Product Manager, Agentic AI, Jaipur Product Manager');
 
     // Update Open Graph tags
     updateOrCreateMeta('property', 'og:title', title);
@@ -396,7 +396,7 @@ const App: React.FC = () => {
         </div>
 
         <div className="aspect-[16/9] md:aspect-[21/9] w-full rounded-[24px] md:rounded-[40px] overflow-hidden mb-12 md:mb-16 border border-[#222] shadow-2xl">
-          <img src={formatImageUrl(post.image)} alt="" className="w-full h-full object-cover transition-all duration-700" />
+          <img src={formatImageUrl(post.image)} alt={post.title} className="w-full h-full object-cover transition-all duration-700" />
         </div>
 
         {/* Detailed Blog Content */}
@@ -575,7 +575,7 @@ const App: React.FC = () => {
                   className="group cursor-pointer bg-[#121212] p-5 md:p-6 rounded-[20px] md:rounded-[28px] border border-[#222] hover:border-[#f59e0b]/40 transition-all flex flex-col gap-3 md:gap-4"
                 >
                   <div className="aspect-video w-full rounded-xl md:rounded-2xl overflow-hidden transition-all">
-                    <img src={formatImageUrl(sPost.image)} alt="" className="w-full h-full object-cover" />
+                    <img src={formatImageUrl(sPost.image)} alt={sPost.title} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-[#f59e0b] uppercase tracking-widest mb-1 block">{sPost.tags[0]}</span>
@@ -827,7 +827,7 @@ const App: React.FC = () => {
                       <div className="animate-marquee-ltr flex items-center">
                         {[...techStackIcons, ...techStackIcons].map((url, i) => (
                           <div key={`stack-${i}`} className="mx-6 md:mx-10 shrink-0 flex items-center justify-center">
-                             <img src={url} className="h-10 w-10 md:h-14 md:w-14 object-contain transition-all hover:scale-125" alt="tech" />
+                             <img src={url} className="h-10 w-10 md:h-14 md:w-14 object-contain transition-all hover:scale-125" alt={`${url.split('/').pop()?.split('.')[0] || 'tech'} logo`} />
                           </div>
                         ))}
                       </div>
@@ -1076,9 +1076,17 @@ const App: React.FC = () => {
           
           <div className="flex flex-col md:flex-row md:items-start justify-between mb-10 md:mb-16 relative z-10">
             <div className="flex flex-col gap-2 mb-6 md:mb-0 text-center md:text-left">
-              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter flex items-center justify-center md:justify-start gap-3 md:gap-4 whitespace-nowrap">
-                {settings.name}
-              </h1>
+              {activeTab === 'about' ? (
+                <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3">
+                  <span>{settings.name}</span>
+                  <span className="text-sm font-medium text-gray-400 font-mono tracking-normal block md:inline">| {settings.role}</span>
+                </h1>
+              ) : (
+                <div className="text-3xl md:text-4xl font-black text-white tracking-tighter flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-3">
+                  <span>{settings.name}</span>
+                  <span className="text-sm font-medium text-gray-400 font-mono tracking-normal block md:inline">| {settings.role}</span>
+                </div>
+              )}
               <div className="w-12 md:w-16 h-1.5 bg-[#f59e0b] rounded-full mt-1 shadow-[0_0_15px_rgba(245,158,11,0.4)] mx-auto md:mx-0"></div>
             </div>
             

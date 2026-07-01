@@ -48,7 +48,7 @@ const Sidebar: React.FC<SidebarProps> = ({ profile, onAdminTrigger, onNavigate }
         >
           <img 
             src={info.avatar} 
-            alt={info.name} 
+            alt={`${info.name} - Product Manager`} 
             className="w-full h-full object-cover transition-all duration-700 scale-100 group-hover:scale-110"
           />
         </div>
