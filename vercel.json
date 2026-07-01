@@ -3,6 +3,17 @@
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/api/sitemap", "destination": "/api/sitemap" },
     { "source": "/api/rss", "destination": "/api/rss" },
+    {
+      "source": "/blog/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(Googlebot|Bingbot|GPTBot|ChatGPT-User|ClaudeBot|Claude-Web|PerplexityBot|facebookexternalhit|Twitterbot|LinkedInBot|Slackbot|WhatsApp|DuckDuckBot|YandexBot|Applebot|Google-Extended|meta-externalagent|Bytespider).*"
+        }
+      ],
+      "destination": "/api/blog-render?slug=:slug"
+    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

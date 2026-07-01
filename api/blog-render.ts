@@ -1,51 +1,17 @@
-/**
- * Vercel Edge Middleware — Bot Dynamic Rendering for Blog Posts
- *
- * This file is picked up automatically by Vercel at deploy time.
- * It runs on the Edge Network (not Node.js) before any rewrite/SPA routing.
- *
- * For non-Next.js projects, Vercel middleware uses the Web Standard
- * Request/Response APIs (no next/server import needed).
- *
- * @see https://vercel.com/docs/functions/edge-middleware
- */
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export const config = {
-  // Only intercept /blog/* paths — all others pass through instantly
-  matcher: '/blog/:slug*',
-};
+/**
+ * Bot Dynamic Rendering for Blog Posts
+ *
+ * This serverless function is invoked via vercel.json rewrites
+ * when the User-Agent matches a known bot pattern. It fetches
+ * the blog post from Supabase and returns fully rendered HTML
+ * with JSON-LD schemas for SEO/AEO/GEO.
+ */
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 const SITE_URL = 'https://milansharma.qzz.io';
-
-// Known bots that do NOT execute JavaScript
-const BOT_PATTERNS = [
-  'Googlebot',
-  'Bingbot',
-  'GPTBot',
-  'ChatGPT-User',
-  'ClaudeBot',
-  'Claude-Web',
-  'PerplexityBot',
-  'facebookexternalhit',
-  'Twitterbot',
-  'LinkedInBot',
-  'Slackbot',
-  'WhatsApp',
-  'DuckDuckBot',
-  'YandexBot',
-  'Applebot',
-  'Google-Extended',
-  'meta-externalagent',
-  'Bytespider',
-];
-
-function isBot(userAgent: string): boolean {
-  if (!userAgent) return false;
-  const ua = userAgent.toLowerCase();
-  return BOT_PATTERNS.some((p) => ua.includes(p.toLowerCase()));
-}
 
 interface BlogPost {
   slug: string;
@@ -83,23 +49,29 @@ async function fetchBlogPost(slug: string): Promise<BlogPost | null> {
   }
 }
 
-/** Strip markdown to plain text paragraphs for bot-readable body */
+function escapeHtml(str: string): string {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/** Strip markdown to readable HTML paragraphs for bots */
 function markdownToHtml(md: string): string {
   if (!md) return '';
   const plain = md
-    .replace(/!\[.*?\]\(.*?\)/g, '')           // remove images
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')   // links → text
-    .replace(/^#{1,6}\s+(.+)$/gm, '<h2>$1</h2>') // headers → h2
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
-    .replace(/`{1,3}[^`]*`{1,3}/g, '')         // strip code blocks
-    .replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>') // list items
-    .replace(/\{\{[^}]+\}\}/g, '')             // custom placeholders
-    .replace(/\|[^\n]+\|/g, '');              // strip table rows
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^#{1,6}\s+(.+)$/gm, '<h2>$1</h2>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`{1,3}[^`]*`{1,3}/g, '')
+    .replace(/^\s*[-*+]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/\{\{[^}]+\}\}/g, '')
+    .replace(/\|[^\n]+\|/g, '');
 
-  // Wrap consecutive <li> in <ul>
   const withUl = plain.replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`);
 
-  // Wrap plain text paragraphs (lines not already wrapped in a tag)
   return withUl
     .split(/\n{2,}/)
     .map((para) => para.trim())
@@ -120,8 +92,9 @@ function buildHtml(post: BlogPost): string {
     ? new Date(post.date).toISOString()
     : new Date().toISOString();
   const authorName = post.author?.name || 'Milan Sharma';
+  const safeTitle = escapeHtml(post.title);
+  const safeDesc = escapeHtml(post.description);
 
-  // JSON-LD: BlogPosting
   const blogPostingSchema = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -140,18 +113,11 @@ function buildHtml(post: BlogPost): string {
     publisher: {
       '@type': 'Organization',
       name: 'Nexa Technologies',
-      logo: {
-        '@type': 'ImageObject',
-        url: `${SITE_URL}/1769519621500.png`,
-      },
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/1769519621500.png` },
     },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': canonicalUrl,
-    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
   });
 
-  // JSON-LD: FAQPage (critical for AEO — Google surfaces answers directly)
   const faqSchema =
     post.questions && post.questions.length > 0
       ? JSON.stringify({
@@ -172,9 +138,7 @@ function buildHtml(post: BlogPost): string {
       ? `<section aria-label="Resources">
   <h2>Resources &amp; Further Reading</h2>
   <ul>
-    ${post.resources
-      .map((r) => `<li><a href="${r.url}" target="_blank" rel="noopener noreferrer">${r.title}</a></li>`)
-      .join('\n    ')}
+    ${post.resources.map((r) => `<li><a href="${r.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title)}</a></li>`).join('\n    ')}
   </ul>
 </section>`
       : '';
@@ -186,9 +150,9 @@ function buildHtml(post: BlogPost): string {
   ${post.questions
     .map(
       (q) => `<div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
-    <h3 itemprop="name">${q.question}</h3>
+    <h3 itemprop="name">${escapeHtml(q.question)}</h3>
     <div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-      <p itemprop="text">${q.answer}</p>
+      <p itemprop="text">${escapeHtml(q.answer)}</p>
     </div>
   </div>`
     )
@@ -197,7 +161,9 @@ function buildHtml(post: BlogPost): string {
       : '';
 
   const pubDateStr = new Date(publishedDate).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 
   return `<!DOCTYPE html>
@@ -205,27 +171,27 @@ function buildHtml(post: BlogPost): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${post.title} | Milan Sharma</title>
-  <meta name="description" content="${post.description}" />
+  <title>${safeTitle} | Milan Sharma</title>
+  <meta name="description" content="${safeDesc}" />
   <link rel="canonical" href="${canonicalUrl}" />
   <meta name="robots" content="index, follow, max-image-preview:large" />
-  <meta name="author" content="${authorName}" />
+  <meta name="author" content="${escapeHtml(authorName)}" />
 
   <!-- Open Graph -->
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="${post.title}" />
-  <meta property="og:description" content="${post.description}" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeDesc}" />
   <meta property="og:image" content="${imageUrl}" />
   <meta property="og:url" content="${canonicalUrl}" />
   <meta property="og:site_name" content="Milan Sharma — Neural Library" />
   <meta property="article:published_time" content="${publishedDate}" />
-  <meta property="article:author" content="${authorName}" />
-  ${(post.tags || []).map((tag) => `<meta property="article:tag" content="${tag}" />`).join('\n  ')}
+  <meta property="article:author" content="${escapeHtml(authorName)}" />
+  ${(post.tags || []).map((tag) => `<meta property="article:tag" content="${escapeHtml(tag)}" />`).join('\n  ')}
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${post.title}" />
-  <meta name="twitter:description" content="${post.description}" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeDesc}" />
   <meta name="twitter:image" content="${imageUrl}" />
 
   <!-- RSS Discovery -->
@@ -265,16 +231,16 @@ function buildHtml(post: BlogPost): string {
 
   <article itemscope itemtype="https://schema.org/BlogPosting">
     <header>
-      <h1 itemprop="headline">${post.title}</h1>
+      <h1 itemprop="headline">${safeTitle}</h1>
       <div class="meta">
-        <span>By <strong itemprop="author">${authorName}</strong></span>
+        <span>By <strong itemprop="author">${escapeHtml(authorName)}</strong></span>
         <span itemprop="datePublished" content="${publishedDate}">${pubDateStr}</span>
       </div>
       <div class="tags" aria-label="Tags">
-        ${(post.tags || []).map((tag) => `<span class="tag">${tag}</span>`).join('')}
+        ${(post.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
       </div>
-      <p itemprop="description"><em>${post.description}</em></p>
-      <img src="${imageUrl}" alt="${post.title}" class="hero-img" itemprop="image" />
+      <p itemprop="description"><em>${safeDesc}</em></p>
+      <img src="${imageUrl}" alt="${safeTitle}" class="hero-img" itemprop="image" />
     </header>
 
     <section itemprop="articleBody">
@@ -298,31 +264,26 @@ function buildHtml(post: BlogPost): string {
 </html>`;
 }
 
-export default async function middleware(request: Request): Promise<Response | undefined> {
-  const ua = request.headers.get('user-agent') || '';
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const slug = req.query.slug as string;
 
-  // Only intercept known bots — pass through all real browsers instantly
-  if (!isBot(ua)) {
-    return undefined; // Vercel: undefined = pass through to next handler
+  if (!slug) {
+    res.status(400).send('Missing slug parameter');
+    return;
   }
 
-  // Extract slug from pathname: /blog/:slug
-  const url = new URL(request.url);
-  const match = url.pathname.match(/^\/blog\/([^/]+)$/);
-  if (!match) return undefined;
-
-  const slug = decodeURIComponent(match[1]);
   const post = await fetchBlogPost(slug);
 
-  // If post not found, fall through — React SPA handles the 404
-  if (!post) return undefined;
+  if (!post) {
+    // Post not found — redirect to SPA which will show 404
+    res.redirect(302, `${SITE_URL}/blog/${slug}`);
+    return;
+  }
 
-  return new Response(buildHtml(post), {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 's-maxage=600, stale-while-revalidate=3600',
-      'X-Robots-Tag': 'index, follow',
-    },
-  });
+  const html = buildHtml(post);
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600');
+  res.setHeader('X-Robots-Tag', 'index, follow');
+  res.status(200).send(html);
 }
