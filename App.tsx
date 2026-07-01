@@ -140,25 +140,28 @@ const App: React.FC = () => {
         ogType = 'article';
         ogImage = post.image ? (post.image.startsWith('http') ? post.image : `${siteUrl}${formatImageUrl(post.image)}`) : ogImage;
         
-        // BlogPosting Schema
-        schemaData = {
+        // BlogPosting + optional FAQPage Schema
+        const blogPosting = {
           "@context": "https://schema.org",
           "@type": "BlogPosting",
           "headline": post.title,
           "description": post.description,
           "image": ogImage,
           "datePublished": new Date(post.date).toISOString().slice(0, 10),
+          "dateModified": new Date(post.date).toISOString().slice(0, 10),
+          "keywords": (post.tags || []).join(', '),
+          "url": canonical,
           "author": {
             "@type": "Person",
             "name": post.author?.name || settings.name,
-            "image": post.author?.avatar ? (post.author.avatar.startsWith('http') ? post.author.avatar : `${siteUrl}${post.author.avatar}`) : ogImage
+            "url": "https://linkedin.com/in/milansharma01"
           },
           "publisher": {
             "@type": "Organization",
             "name": "Nexa Technologies",
             "logo": {
               "@type": "ImageObject",
-              "url": settings.avatar ? (settings.avatar.startsWith('http') ? settings.avatar : `${siteUrl}${settings.avatar}`) : ogImage
+              "url": `${siteUrl}/1769519621500.png`
             }
           },
           "mainEntityOfPage": {
@@ -166,6 +169,24 @@ const App: React.FC = () => {
             "@id": canonical
           }
         };
+        
+        if (post.questions && post.questions.length > 0) {
+          const faqPage = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": post.questions.map((q: any) => ({
+              "@type": "Question",
+              "name": q.question,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": q.answer
+              }
+            }))
+          };
+          schemaData = [blogPosting, faqPage];
+        } else {
+          schemaData = blogPosting;
+        }
       }
     } else {
       // Tab-specific metadata
@@ -183,8 +204,8 @@ const App: React.FC = () => {
           description = 'Explore SaaS products, agentic AI assistants, and enterprise solutions developed by Milan Sharma, founder of Nexa Technologies.';
           break;
         case 'library':
-          title = 'NeuralPath Library | GenAI & Agentic Workflow Insights';
-          description = 'High-signal articles, technical guides, and research on GenAI, Agentic AI, Python development, and data engineering workflows.';
+          title = 'Neural Library — AI & Tech Insights by Milan Sharma';
+          description = 'High-signal articles, technical guides, and research on GenAI, Agentic AI, Python development, and data engineering by Milan Sharma.';
           break;
         case 'contact':
           title = 'Contact Milan Sharma | Product Manager & Nexa Founder';
@@ -217,8 +238,32 @@ const App: React.FC = () => {
             "url": siteUrl
           }
         ];
+      } else if (activeTab === 'library') {
+        // ItemList schema — lists all blog posts for crawler discovery
+        const breadcrumb = {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": siteUrl },
+            { "@type": "ListItem", "position": 2, "name": "Neural Library", "item": canonical }
+          ]
+        };
+        const itemList = {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "Neural Library — AI & Tech Insights by Milan Sharma",
+          "description": "High-signal articles on GenAI, Agentic AI, and Data Engineering by Milan Sharma.",
+          "url": canonical,
+          "itemListElement": settings.blogs.map((post: any, idx: number) => ({
+            "@type": "ListItem",
+            "position": idx + 1,
+            "url": `${siteUrl}/blog/${post.slug}`,
+            "name": post.title
+          }))
+        };
+        schemaData = [breadcrumb, itemList];
       } else {
-        // Breadcrumb Schema for subpages
+        // Breadcrumb Schema for other subpages
         schemaData = {
           "@context": "https://schema.org",
           "@type": "BreadcrumbList",
@@ -331,9 +376,16 @@ const App: React.FC = () => {
   };
 
   const handleSaveSettings = async (newSettings: PortfolioSettings) => {
+    const prevBlogCount = settings.blogs?.length || 0;
     const success = await saveSettings(newSettings);
     if (success) {
       setSettings(newSettings);
+      // Auto-ping Google when a new blog post is published — fire-and-forget
+      const newBlogCount = newSettings.blogs?.length || 0;
+      if (newBlogCount !== prevBlogCount) {
+        fetch('https://www.google.com/ping?sitemap=https://milansharma.qzz.io/sitemap.xml', { mode: 'no-cors' })
+          .catch(() => {}); // Ignore CORS errors — ping still registers on Google's side
+      }
     }
     return success;
   };
@@ -604,19 +656,21 @@ const App: React.FC = () => {
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="max-w-3xl mb-10 md:mb-16">
-              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter mb-4 md:mb-6">NeuralPath Library</h1>
+              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter mb-4 md:mb-6">Neural Library — AI &amp; Tech Insights by Milan Sharma</h1>
               <p className="text-gray-400 text-[14px] md:text-[16px] leading-relaxed font-medium">
-                Daily breakthroughs in AI, Data Science, and Agentic Workflows.
+                Daily breakthroughs in AI, Data Science, and Agentic Workflows by Milan Sharma, Product Manager at Nexa Technologies.
                 Explore our high-signal library of technical insights.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 pb-20">
               {settings.blogs.map((post) => (
-                <div 
+                <a
                   key={post.slug}
-                  onClick={() => handleOpenPost(post.slug)}
-                  className="group cursor-pointer space-y-3 md:space-y-4"
+                  href={`/blog/${post.slug}`}
+                  onClick={(e) => { e.preventDefault(); handleOpenPost(post.slug); }}
+                  className="group cursor-pointer space-y-3 md:space-y-4 no-underline block"
+                  aria-label={`Read: ${post.title}`}
                 >
                   <div className="aspect-[16/10] rounded-xl md:rounded-2xl overflow-hidden border border-[#222] bg-[#121212]">
                     <img 
@@ -638,7 +692,7 @@ const App: React.FC = () => {
                       {post.description}
                     </p>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </div>
